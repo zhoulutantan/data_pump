@@ -15,6 +15,7 @@ class data_source(object):
 
 
     def set_file_access(self):
+        re_file_name=""
         if(self._source_dict['type']=='text'):
             path=self._source_dict['path']
             file_pre=self._source_dict['file_pre']
