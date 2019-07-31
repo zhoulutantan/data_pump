@@ -28,9 +28,7 @@ def insert_daily_kpi_report(ds_key):
                                         live_and_video_gift_cnt = line.get('live_and_video_gift_cnt'),
                                         live_and_video_gift_amt = line.get('live_and_video_gift_amt'),
                                         live_and_video_gift_uids = line.get('live_and_video_gift_uids'),
-                                        live_and_video_gift_arpu = line.get('live_and_video_gift_arpu'),
-                                        total_consume_amt = line.get('total_consume_amt'),
-                                        total_consume_uids = line.get('total_consume_uids'))
+                                        total_inc_amt = line.get('total_inc_amt'))
             db.session.add(daily_kpi_report)
             try:
                 db.session.commit()
@@ -59,9 +57,8 @@ def insert_daily_kpi_report_test():
                                               live_and_video_gift_cnt = 102,
                                               live_and_video_gift_amt = 102,
                                               live_and_video_gift_uids = 102,
-                                              live_and_video_gift_arpu = 102,
-                                              total_consume_amt = 102,
-                                              total_consume_uids = 102)
+                                              total_inc_amt=104
+                                      )
     db.session.add(daily_kpi_report)
     try:
         db.session.commit()
@@ -69,8 +66,8 @@ def insert_daily_kpi_report_test():
         print(err)
         db.session.rollback()
 
-def insert_daily_kpi_report_te():
-    daily_kpi_report=Daily_kpi_report(date=20180712,
+def insert_daily_kpi_report_t(date):
+    daily_kpi_report=Daily_kpi_report(date=date,
                                       client_name='美拍',
                                       app_dau=1202,
                                       sdk_dau = 1202,
@@ -90,9 +87,7 @@ def insert_daily_kpi_report_te():
                                       live_and_video_gift_cnt = 1202,
                                       live_and_video_gift_amt = 1202,
                                       live_and_video_gift_uids = 1202,
-                                      live_and_video_gift_arpu = 1202,
-                                      total_consume_amt = 1202,
-                                      total_consume_uids = 1202)
+                                      total_inc_amt = 104)
     db.session.add(daily_kpi_report)
     try:
         db.session.commit()

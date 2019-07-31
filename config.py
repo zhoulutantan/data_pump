@@ -48,7 +48,7 @@ config = {
     'testing': TestingConfig,
     'production': ProductionConfig,
 
-    'default': OnlineConfig
+    'default': DevelopmentConfig
 }
 
 

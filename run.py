@@ -26,6 +26,15 @@ def hello():
     controllers.insert_daily_kpi_report_test()
     controllers.insert_daily_kpi_report_te()
 
+def printdate(date):
+    print(date)
+
+
+@manager.option('-d', '--date', dest='date', default='20180701')
+@manager.option('-f', '--function', dest='function', default=None)
+def hell(date,function):
+    function(date)
+
 
 
 

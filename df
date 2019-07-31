@@ -1,0 +1,230 @@
+set hive.exec.dynamic.partition.mode=nonstrict;
+set hive.exec.dynamic.partition=true;
+set hive.stats.reliable=false;
+set hive.exec.max.dynamic.partitions.pernode=1000;
+set hive.map.aggr=true;
+insert overwrite table stat_huyu.huyu_mdz_daily_kpi_topic  partition(date_p)
+select
+l.client_name as client_name,
+app_dau,
+sdk_dau,
+sdk_uids,
+watch_cnt,
+watch_uv,
+watch_uids,
+effect_watch_cnt,
+effect_watch_uv,
+effect_watch_uids,
+avg_watch_play_time,
+recharge_amt,
+recharge_uids,
+catch_doll_cnt,
+catch_doll_amt,
+catch_doll_uids,
+live_and_video_gift_cnt,
+live_and_video_gift_amt,
+live_and_video_gift_uids,
+total_inc_amt,
+l.date_p as date_p
+from
+(select
+date_p,
+coalesce(client_name,'整体') as client_name,
+watch_cnt,
+watch_uv,
+watch_uids,
+effect_watch_cnt,
+effect_watch_uv,
+effect_watch_uids,
+avg_watch_play_time,
+live_and_video_gift_cnt,
+live_and_video_gift_amt,
+live_and_video_gift_uids,
+total_inc_amt
+from
+(select
+a.date_p as date_p,
+client_name,
+sum(if(controller_p='statistics' and action_p='live_play',1,0)) as watch_cnt,
+count(distinct if(controller_p='statistics' and action_p='live_play',device_id,null)) as watch_uv,
+count(distinct if(controller_p='statistics' and action_p='live_play',a.uid,null)) as watch_uids,
+sum(if(controller_p='statistics' and action_p='live_play' and play_time>=120 and play_time<=86400,1,0)) as effect_watch_cnt,
+count(distinct if(controller_p='statistics' and action_p='live_play' and play_time>=120 and play_time<=86400,device_id,null)) as effect_watch_uv,
+count(distinct if(controller_p='statistics' and action_p='live_play' and play_time>=120 and play_time<=86400,a.uid,null)) as effect_watch_uids,
+round(sum(if(controller_p='statistics' and action_p='live_play'
+and play_time>=120 and play_time<=86400,play_time,0))/count(distinct if(controller_p='statistics'
+and action_p='live_play' and play_time>=120 and play_time<=86400,a.uid,null)),2) as avg_watch_play_time,
+sum(if(controller_p='gifts' and action_p in ('live_consume','media_consume') and (is_majia!=1 or is_majia is null) and b.uid is null,1,0)) as live_and_video_gift_cnt,
+sum(if(controller_p='gifts' and action_p in ('live_consume','media_consume') and (is_majia!=1 or is_majia is null) and gift_price is not null and b.uid is null,gift_price,0))/10 as live_and_video_gift_amt,
+count(distinct if(controller_p='gifts' and action_p in ('live_consume','media_consume') and (is_majia!=1 or is_majia is null) and b.uid is null,a.uid,null)) as live_and_video_gift_uids,
+sum(if(controller_p='gifts' and action_p in ('live_consume','media_consume') and (is_majia!=1 or is_majia is null) and gift_price is not null,gift_price,0))/10 as total_inc_amt
+from
+(
+select
+	substr(logdate,1,8) as date_p,
+	case when client_id in (1089857299,1089857302) then '美拍'
+	when client_id in (1089867602,1089867603) then '秀秀'
+	when client_id in (1089867607,1089867608) then '美颜'
+	when client_id in (1089867654,1089867655) then '海报'
+	end as client_name,
+	device_id,
+	uid,
+	controller_p,
+	action_p,
+	play_time,
+	is_majia,
+	gift_price
+from
+	meipai
+where
+	logdate<=$end_time and logdate>=$begin_time
+	and controller_p in ('live_channels','lives','statistics','gifts','mussy','open')
+	and action_p in('programs','show','live_play','live_consume','recharge_order','catch_doll_pay_coins','media_consume')
+	and client_id in (1089857299,1089857302,1089867602,1089867603,1089867607,1089867608,1089867654,1089867655)
+) a
+left outer join
+(
+ select
+    `date` as date_p,
+ 	uid
+ 	from
+ 	stat_huyu.huyu_oda_consume_illegal_user
+ 	where
+ 	`date`<=$end_day and `date`>=$begin_day
+    and status=1
+ 	group by
+ 	`date`,
+ 	uid
+) b
+on
+a.date_p = b.date_p
+and a.uid = b.uid
+group by
+a.date_p,
+client_name
+GROUPING SETS (
+(a.date_p),
+(a.date_p,client_name))
+) i
+) l
+left outer join
+(
+select
+substr(logdate,1,8) as date_p,
+'整体' as client_name,
+sum(if(controller_p='mussy' and action_p='recharge_order'  and coins is not null,coins,0))/10 as recharge_amt,
+count(distinct if(controller_p='mussy' and action_p='recharge_order'  and coins is not null,uid,null)) as recharge_uids,
+sum(if(controller_p='open' and action_p='catch_doll_pay_coins'  and coins is not null,coins,0))/10 as catch_doll_amt,
+count(distinct if(controller_p='open' and action_p='catch_doll_pay_coins'  and coins is not null,uid,null)) as catch_doll_uids,
+sum(if(controller_p='open' and action_p='catch_doll_pay_coins'  and coins is not null,1,0)) as catch_doll_cnt
+from
+	meipai
+where
+	logdate<=$end_time and logdate>=$begin_time
+	and controller_p in ('live_channels','lives','statistics','mussy','open')
+	and action_p in('programs','show','live_play','recharge_order','catch_doll_pay_coins')
+group by
+substr(logdate,1,8)
+) m
+on
+l.date_p = m.date_p
+and l.client_name = m.client_name
+left outer join
+(
+select
+date_p,
+coalesce(client_name,'整体') as client_name,
+app_dau
+from
+(select
+	date_p,
+	client_name,
+	count(distinct  server_id) as app_dau
+from
+(
+select date_p, server_id,
+case when app_key_p in('F9CC8787275D8691') then '美颜'
+when app_key_p in('C4FAF9CE1569F541','F5C7F68C7117630B') then '秀秀'
+when app_key_p in('C671B74C5E41CFC9','D151B19B56009337') then '美拍'
+when app_key_p in('44035514283B5C27','F9A1F63242B8726E') then '海报'
+end as client_name
+from stat_sdk_android
+where (app_key_p="F9CC8787275D8691"  and app_version>='7.5.40' or
+app_key_p="C4FAF9CE1569F541" and app_version>="8.0.0" or
+app_key_p="C671B74C5E41CFC9" or
+app_key_p="44035514283B5C27")
+and event_id="app_start"
+and date_p<=$end_day and date_p>=$begin_day
+group by
+date_p, server_id,
+case when app_key_p in('F9CC8787275D8691') then '美颜'
+when app_key_p in('C4FAF9CE1569F541','F5C7F68C7117630B') then '秀秀'
+when app_key_p in('C671B74C5E41CFC9','D151B19B56009337') then '美拍'
+when app_key_p in('44035514283B5C27','F9A1F63242B8726E') then '海报'
+end
+
+union all
+
+
+select date_p,server_id,
+case when app_key_p in('F9CC8787275D8691') then '美颜'
+when app_key_p in('C4FAF9CE1569F541','F5C7F68C7117630B') then '秀秀'
+when app_key_p in('C671B74C5E41CFC9','D151B19B56009337') then '美拍'
+when app_key_p in('44035514283B5C27','F9A1F63242B8726E') then '海报'
+end as client_name
+from stat_sdk_ios
+where (app_key_p="F5C7F68C7117630B" and app_version>="8.0.0" or
+app_key_p="D151B19B56009337" or
+app_key_p="F9A1F63242B8726E")
+and event_id="app_start"
+and date_p<=$end_day and date_p>=$begin_day
+group by
+date_p, server_id,
+case when app_key_p in('F9CC8787275D8691') then '美颜'
+when app_key_p in('C4FAF9CE1569F541','F5C7F68C7117630B') then '秀秀'
+when app_key_p in('C671B74C5E41CFC9','D151B19B56009337') then '美拍'
+when app_key_p in('44035514283B5C27','F9A1F63242B8726E') then '海报'
+end
+) pa
+group by
+date_p,
+client_name
+GROUPING SETS (
+(date_p),
+(date_p,client_name))
+) ap
+) r
+on
+l.date_p = r.date_p
+and l.client_name = r.client_name
+left outer join
+(
+select
+	date_p,
+	client_name,
+	count(distinct device_id) as sdk_dau,
+	count(distinct uid) as sdk_uids
+	from
+	stat_huyu.huyu_mdz_uid_active
+	where date_p<=$end_day and date_p>=$begin_day
+group by
+    date_p,
+	client_name
+
+union all
+
+select
+	date_p,
+	'整体' as client_name,
+	count(distinct device_id) as sdk_dau,
+	count(distinct uid) as sdk_uids
+	from
+	stat_huyu.huyu_mdz_uid_active
+	where date_p<=$end_day and date_p>=$begin_day
+group by
+    date_p
+
+) s
+on
+l.date_p = s.date_p
+and l.client_name = s.client_name

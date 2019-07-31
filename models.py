@@ -25,9 +25,31 @@ class Daily_kpi_report(db.Model):
     live_and_video_gift_cnt = db.Column(db.Integer)
     live_and_video_gift_amt = db.Column(db.Float)
     live_and_video_gift_uids = db.Column(db.Integer)
-    live_and_video_gift_arpu = db.Column(db.Float)
-    total_consume_amt = db.Column(db.Float)
-    total_consume_uids = db.Column(db.Integer)
+    total_inc_amt = db.Column(db.Float)
+
+
+class Month_consume_user_feature_report(db.Model):
+    __tablename__ = 'month_consume_user_feature_report'
+    mo_p = db.Column(db.Integer, primary_key=True)
+    hour= db.Column(db.String)
+    refer = db.Column(db.String)
+    gender = db.Column(db.String)
+    age_rank = db.Column(db.String)
+    amt_rank = db.Column(db.String)
+    freq_rank = db.Column(db.String)
+    province_name = db.Column(db.String)
+    city_level = db.Column(db.String)
+    reg_age = db.Column(db.String)
+    user_active_type = db.Column(db.String)
+    tag_name = db.Column(db.String)
+    gift_type = db.Column(db.String)
+    gift_name = db.Column(db.String)
+    anchor_looks_rank = db.Column(db.String)
+    anchor_talent_rank = db.Column(db.String)
+    anchor_interaction_rank = db.Column(db.String)
+    city_name = db.Column(db.String)
+    uids = db.Column(db.Integer)
+    coins = db.Column(db.Float)
 
 
 
